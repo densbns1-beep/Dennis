@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MADE WITH KARANTADUHAN</title>
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: pink;
+    margin: 0;
+    overflow: hidden;
+    gap: 30px; /* space between heading and buttons */
+  }
+
+  h1 {
+    color: #333;
+    font-size: 60px; /* bigger heading */
+    text-align: center;
+  }
+
+  .buttons {
+    display: flex;
+    gap: 50px; /* space between Oo and Hindi */
+  }
+
+  button {
+    padding: 20px 50px; /* bigger buttons */
+    font-size: 28px;    /* bigger text */
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: center; /* center text */
+    transition: all 0.3s ease;
+  }
+
+  #yes {
+    background-color: #ff4d6d;
+    color: white;
+  }
+
+  #no {
+    background-color: #4d79ff;
+    color: white;
+  }
+
+  .popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background-color: #fff;
+    border-radius: 20px;
+    padding: 50px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    text-align: center;
+    font-size: 50px; /* bigger popup text */
+    color: #ff4d6d;
+    z-index: 100;
+    transition: transform 0.5s ease-in-out;
+  }
+
+  .popup.show {
+    transform: translate(-50%, -50%) scale(1);
+  }
+</style>
+</head>
+<body>
+
+<h1>Pandak Kaba?</h1>
+<div class="buttons">
+  <button id="yes">Oo</button>
+  <button id="no">Hindi</button>
+</div>
+
+<div class="popup" id="popup">HAHAHAHHA PANDAK 😝😝😝</div>
+
+<script>
+  const yesBtn = document.getElementById('yes');
+  const noBtn = document.getElementById('no');
+  const popup = document.getElementById('popup');
+
+  yesBtn.addEventListener('click', () => {
+    popup.classList.add('show');
+    setTimeout(() => popup.classList.remove('show'), 2000);
+  });
+
+  // "No" button dodges anywhere on the screen
+  noBtn.addEventListener('mouseenter', () => {
+    const maxX = window.innerWidth - noBtn.offsetWidth;
+    const maxY = window.innerHeight - noBtn.offsetHeight;
+
+    const randomX = Math.floor(Math.random() * maxX);
+    const randomY = Math.floor(Math.random() * maxY);
+
+    noBtn.style.position = "absolute"; // make it float when dodging
+    noBtn.style.left = randomX + "px";
+    noBtn.style.top = randomY + "px";
+  });
+</script>
+
+</body>
+</html>
