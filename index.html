@@ -3,106 +3,178 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MADE WITH KARANTADUHAN</title>
+<title>!! ALERT !!</title>
 <style>
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background-color: pink;
-    margin: 0;
-    overflow: hidden;
-    gap: 30px; /* space between heading and buttons */
-  }
+body {
+  margin: 0;
+  background: black;
+  color: #00ff9d;
+  font-family: monospace;
+  overflow: hidden;
+}
 
-  h1 {
-    color: #333;
-    font-size: 60px; /* bigger heading */
-    text-align: center;
-  }
+#terminal {
+  padding: 20px;
+  white-space: pre-line;
+  font-size: 16px;
+  overflow-y: hidden; /* hide scrollbar */
+  height: 100vh;      /* full screen height */
+}
 
-  .buttons {
-    display: flex;
-    gap: 50px; /* space between Oo and Hindi */
-  }
+.popup {
+  position: fixed;
+  top: 20%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  background: #111;
+  border: 2px solid red;
+  color: #ff4444;
+  padding: 25px;
+  text-align: center;
+  width: 300px;
+  transition: 0.3s;
+  z-index: 100;
+}
 
-  button {
-    padding: 20px 50px; /* bigger buttons */
-    font-size: 28px;    /* bigger text */
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    text-align: center; /* center text */
-    transition: all 0.3s ease;
-  }
+.popup.show {
+  transform: translate(-50%, -50%) scale(1);
+}
 
-  #yes {
-    background-color: #ff4d6d;
-    color: white;
-  }
+.glitch {
+  color: red;
+  animation: flicker 0.1s infinite;
+}
 
-  #no {
-    background-color: #4d79ff;
-    color: white;
-  }
+@keyframes flicker {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
 
-  .popup {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    background-color: #fff;
-    border-radius: 20px;
-    padding: 50px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    text-align: center;
-    font-size: 50px; /* bigger popup text */
-    color: #ff4d6d;
-    z-index: 100;
-    transition: transform 0.5s ease-in-out;
-  }
+button {
+  margin-top: 10px;
+  padding: 8px 16px;
+  background: #00ff9d;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
 
-  .popup.show {
-    transform: translate(-50%, -50%) scale(1);
-  }
+#leak {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  color: #ff4444;
+  font-size: 14px;
+  padding: 10px;
+  max-height: 200px;
+  overflow: auto;
+  width: 100%;
+}
 </style>
 </head>
 <body>
 
-<h1>Pandak Kaba?</h1>
-<div class="buttons">
-  <button id="yes">Oo</button>
-  <button id="no">Hindi</button>
-</div>
+<div id="terminal"></div>
+<div id="leak"></div>
 
-<div class="popup" id="popup">HAHAHAHHA PANDAK 😝😝😝</div>
+<!-- Embedded glitch alarm sound -->
+<audio id="alarm" preload="auto">
+  <source src="data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YRAAAAAA//8A//////8A//////8A//////8A//////8A//////8A//////8A//////8A//////8A//////8A//////8A//////8A//////8A//////8A//////8A" type="audio/wav">
+</audio>
 
 <script>
-  const yesBtn = document.getElementById('yes');
-  const noBtn = document.getElementById('no');
-  const popup = document.getElementById('popup');
+const terminal = document.getElementById("terminal");
+const leak = document.getElementById("leak");
 
-  yesBtn.addEventListener('click', () => {
-    popup.classList.add('show');
-    setTimeout(() => popup.classList.remove('show'), 2000);
-  });
+// Terminal fake messages
+const messages = [
+  "Initializing system scan...",
+  "Bypassing firewall...",
+  "Detecting apps...",
+  "Injecting malware module...",
+  "Accessing camera & microphone...",
+  "Decrypting passwords...",
+  "⚠ ERROR: SYSTEM BREACH DETECTED ⚠",
+  "Uploading files to unknown server...",
+  "Hacking contacts...",
+  "Stealing saved passwords...",
+  "Corrupting system files..."
+];
 
-  // "No" button dodges anywhere on the screen
-  noBtn.addEventListener('mouseenter', () => {
-    const maxX = window.innerWidth - noBtn.offsetWidth;
-    const maxY = window.innerHeight - noBtn.offsetHeight;
+// Fake leak data
+const fakeData = [
+  "Email: Chxxx@gmail.com | Password: ********",
+  "Contacts: 09xxxxxxxxx, 0998xxxxxxx",
+  "Credit Card: 4111-XXXX-XXXX-1234",
+  "Location: San Roque, PH",
+  "App tokens: 7f4b...2a9c",
+  "Saved notes: 'My secret plan...'"
+];
 
-    const randomX = Math.floor(Math.random() * maxX);
-    const randomY = Math.floor(Math.random() * maxY);
+let i = 0;
 
-    noBtn.style.position = "absolute"; // make it float when dodging
-    noBtn.style.left = randomX + "px";
-    noBtn.style.top = randomY + "px";
-  });
+// Flowing terminal messages
+function typeMessagesFlow() {
+  terminal.innerHTML += messages[i % messages.length] + "\n";
+  terminal.scrollTop = terminal.scrollHeight; // auto-scroll down
+  i++;
+  setTimeout(typeMessagesFlow, 100); // speed of flow
+}
+
+// Start the terminal flow
+setTimeout(typeMessagesFlow, 500);
+
+// Popups chaos with vibration and sound
+function createPopup(text) {
+  const p = document.createElement("div");
+  p.classList.add("popup", "show");
+  p.innerHTML = `<h2 class="glitch">⚠ ALERT ⚠</h2><p>${text}</p>`;
+  document.body.appendChild(p);
+  setTimeout(() => p.remove(), 2500);
+}
+
+function startPopupChaos() {
+  const alarm = document.getElementById("alarm");
+  alarm.loop = true;
+  alarm.play();
+
+  const chaosInterval = setInterval(() => {
+    const msg = messages[Math.floor(Math.random() * messages.length)];
+    createPopup(msg);
+
+    leak.innerHTML += fakeData[Math.floor(Math.random() * fakeData.length)] + "<br>";
+
+    // Vibration effect
+    const x = Math.random() * 20 - 10;
+    const y = Math.random() * 20 - 10;
+    const rotate = Math.random() * 5 - 2.5;
+    document.body.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+  }, 50);
+
+  // End chaos after 20 seconds
+  setTimeout(() => {
+    clearInterval(chaosInterval);
+    document.body.style.transform = "translate(0,0) rotate(0deg)";
+    alarm.pause();
+    alarm.currentTime = 0;
+    revealPrank();
+  }, 20000); // 20 seconds duration
+}
+
+// Start the chaos after the terminal flow
+setTimeout(startPopupChaos, messages.length * 100 + 500);
+
+// Safe reveal
+function revealPrank() {
+  document.body.innerHTML = `
+    <div style="display:flex;justify-content:center;align-items:center;height:100vh;flex-direction:column;background:black;color:#00ff9d;">
+      <h1>😂 PRANK LANG!</h1>
+      <p>Hindi ka na-hack 😝</p>
+      <button onclick="location.reload()">Return</button>
+    </div>
+  `;
+}
 </script>
-
 </body>
 </html>
