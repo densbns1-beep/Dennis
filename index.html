@@ -2,232 +2,215 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Flappy PRO MAX</title>
+<title>GTA LEVEL 3 ONLINE</title>
 <style>
-body { margin:0; overflow:hidden; font-family:Arial; background:#70c5ce; }
-canvas { display:block; margin:auto; }
-
-#menu, #gameOver {
-  position:absolute; top:50%; left:50%;
-  transform:translate(-50%,-50%);
-  text-align:center;
-}
-
-button {
-  padding:12px 20px;
-  font-size:18px;
-  background:orange;
-  border:none;
-  cursor:pointer;
-}
+body { margin:0; overflow:hidden; font-family:sans-serif; }
+#crosshair { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); color:white; font-size:20px; }
+#ui { position:fixed; top:10px; left:10px; color:white; }
+#healthBar { position:fixed; bottom:20px; left:20px; width:200px; height:20px; border:2px solid white; }
+#healthFill { height:100%; width:100%; background:red; }
+#controls { position:fixed; bottom:10px; right:10px; display:flex; flex-direction:column; gap:5px; }
+.btn { padding:10px; background:#333; color:white; border-radius:5px; opacity:0.7; }
+#minimap { position:fixed; top:10px; right:10px; background:black; width:150px; height:150px; }
 </style>
 </head>
 <body>
 
-<canvas id="game" width="400" height="600"></canvas>
-
-<div id="menu">
-  <h1>🐦 Flappy PRO</h1>
-  <button onclick="startGame()">START</button>
+<div id="crosshair">+</div>
+<div id="ui">💰 $<span id="money">0</span> | Mission: <span id="mission">Eliminate enemies</span></div>
+<div id="healthBar"><div id="healthFill"></div></div>
+<canvas id="minimap"></canvas>
+<div id="controls">
+<button class="btn" onclick="press('w')">▲</button>
+<div style="display:flex; gap:5px;">
+  <button class="btn" onclick="press('a')">◀</button>
+  <button class="btn" onclick="press('s')">▼</button>
+  <button class="btn" onclick="press('d')">▶</button>
+</div>
+<button class="btn" onclick="press(' ')">Jump</button>
+<button class="btn" onclick="shoot()">Shoot</button>
+<button class="btn" onclick="enterCar()">Car</button>
 </div>
 
-<div id="gameOver" style="display:none;">
-  <h1>💀 Game Over</h1>
-  <h2 id="finalScore"></h2>
-  <h3 id="highScore"></h3>
-  <button onclick="restart()">Play Again</button>
-</div>
-
-<audio id="jump" src="https://assets.mixkit.co/sfx/preview/mixkit-quick-jump-arcade-game-239.mp3"></audio>
-<audio id="hit" src="https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3"></audio>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/loaders/GLTFLoader.js"></script>
 
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+// ===== SCENE & CAMERA =====
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled=true;
+document.body.appendChild(renderer.domElement);
 
-// 🐦 bird animation frames
-const birdFrames = [
-  "assets/bird1.png",
-  "assets/bird2.png",
-  "assets/bird3.png"
-].map(src => {
-  let img = new Image();
-  img.src = src;
-  return img;
+// ===== LIGHTS =====
+const hemi = new THREE.HemisphereLight(0xffffff,0x444444,1);
+scene.add(hemi);
+const dir = new THREE.DirectionalLight(0xffffff,1);
+dir.position.set(50,100,50);
+dir.castShadow = true;
+scene.add(dir);
+
+// ===== SKYBOX =====
+const loader = new THREE.CubeTextureLoader();
+scene.background = loader.load([
+'https://threejs.org/examples/textures/cube/skybox/px.jpg',
+'https://threejs.org/examples/textures/cube/skybox/nx.jpg',
+'https://threejs.org/examples/textures/cube/skybox/py.jpg',
+'https://threejs.org/examples/textures/cube/skybox/ny.jpg',
+'https://threejs.org/examples/textures/cube/skybox/pz.jpg',
+'https://threejs.org/examples/textures/cube/skybox/nz.jpg'
+]);
+
+// ===== GROUND =====
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(500,500),
+  new THREE.MeshStandardMaterial({color:0x444444})
+);
+ground.rotation.x = -Math.PI/2; ground.receiveShadow=true;
+scene.add(ground);
+
+// ===== PLAYER =====
+const player = new THREE.Mesh(
+  new THREE.CapsuleGeometry(0.5,1),
+  new THREE.MeshStandardMaterial({color:0x00ffcc})
+);
+player.position.y=2; scene.add(player);
+
+// ===== CAR =====
+const carLoader = new THREE.GLTFLoader();
+let carModel = null;
+carLoader.load('https://threejs.org/examples/models/gltf/Fox.glb', gltf=>{
+  carModel = gltf.scene;
+  carModel.scale.set(0.01,0.01,0.01);
 });
 
-const cloudImg = new Image();
-cloudImg.src = "assets/cloud.png";
-
-let bird, pipes, clouds, particles;
-let score, running, frame, groundX, gameStarted;
-
-// INIT
-function init() {
-  bird = { x:60, y:150, velocity:0, gravity:0.5, lift:-9 };
-  pipes = [];
-  clouds = [];
-  particles = [];
-  score = 0;
-  running = true;
-  frame = 0;
-  groundX = 0;
+// ===== CARS ARRAY =====
+let cars=[], inCar=false, currentCar=null;
+for(let i=0;i<5;i++){
+  const box = new THREE.Mesh(new THREE.BoxGeometry(2,1,4),
+  new THREE.MeshStandardMaterial({color:0xff0000}));
+  box.position.set(Math.random()*50-25,1,Math.random()*50-25);
+  scene.add(box);
+  cars.push({mesh:box,vel:0,angle:0});
 }
 
-// START
-function startGame() {
-  document.getElementById("menu").style.display = "none";
-  gameStarted = true;
-  init();
-  update();
+// ===== ENEMIES / POLICE =====
+let enemies=[], police=[];
+for(let i=0;i<8;i++){
+  const e = new THREE.Mesh(new THREE.BoxGeometry(1,2,1),
+  new THREE.MeshStandardMaterial({color:0xff0000}));
+  e.position.set(Math.random()*50-25,1,Math.random()*50-25);
+  scene.add(e); enemies.push(e);
 }
 
-// CLOUDS
-function createCloud() {
-  clouds.push({ x:400, y:Math.random()*200, speed:1 });
+// ===== CIVILIANS =====
+let civilians=[];
+for(let i=0;i<10;i++){
+  const c = new THREE.Mesh(new THREE.BoxGeometry(1,2,1),
+  new THREE.MeshStandardMaterial({color:0x00ff00}));
+  c.position.set(Math.random()*50-25,1,Math.random()*50-25);
+  scene.add(c); civilians.push(c);
 }
 
-function drawClouds() {
-  clouds.forEach(c=>{
-    ctx.drawImage(cloudImg,c.x,c.y,80,50);
-    c.x-=c.speed;
-  });
-  clouds = clouds.filter(c=>c.x>-100);
-}
+// ===== CONTROLS =====
+let keys={};
+function press(k){ keys[k]=true; setTimeout(()=>keys[k]=false,100); }
+document.addEventListener("keydown", e=>keys[e.key]=true);
+document.addEventListener("keyup", e=>keys[e.key]=false);
 
-// PARTICLES
-function createParticles(x,y){
-  for(let i=0;i<5;i++){
-    particles.push({x,y,vx:Math.random()*2-1,vy:Math.random()*2-1,life:30});
+// ===== HEALTH + MONEY =====
+let health=100, money=0;
+const healthFill=document.getElementById('healthFill');
+const moneyUI=document.getElementById('money');
+
+// ===== WANTED LEVEL =====
+let wanted=0;
+
+// ===== GAME FUNCTIONS =====
+function move(){
+  if(!inCar){
+    if(keys['w']) player.position.z-=0.2;
+    if(keys['s']) player.position.z+=0.2;
+    if(keys['a']) player.position.x-=0.2;
+    if(keys['d']) player.position.x+=0.2;
   }
 }
 
-function drawParticles(){
-  particles.forEach(p=>{
-    ctx.fillRect(p.x,p.y,3,3);
-    p.x+=p.vx;
-    p.y+=p.vy;
-    p.life--;
-  });
-  particles = particles.filter(p=>p.life>0);
-}
-
-// BIRD
-function drawBird() {
-  let img = birdFrames[Math.floor(frame/5)%birdFrames.length];
-  ctx.drawImage(img, bird.x-20, bird.y-20, 40, 40);
-}
-
-// PIPES
-function createPipe() {
-  let gap = 130;
-  let top = Math.random()*250;
-
-  pipes.push({
-    x:400,
-    top,
-    bottom:600-top-gap,
-    passed:false
-  });
-}
-
-function drawPipes(){
-  pipes.forEach(p=>{
-    ctx.fillStyle="#2ecc71";
-    ctx.fillRect(p.x,0,50,p.top);
-    ctx.fillRect(p.x,600-p.bottom,50,p.bottom);
-
-    p.x-=3;
-
-    if(
-      bird.x+15>p.x &&
-      bird.x-15<p.x+50 &&
-      (bird.y-15<p.top || bird.y+15>600-p.bottom)
-    ){
-      gameOver();
-    }
-
-    if(!p.passed && p.x<bird.x){
-      score++;
-      document.getElementById("jump").play();
-      p.passed=true;
+function enterCar(){
+  let nearest=null, dist=3;
+  cars.forEach(c=>{
+    if(player.position.distanceTo(c.mesh.position)<dist){
+      nearest=c; dist=player.position.distanceTo(c.mesh.position);
     }
   });
-
-  pipes = pipes.filter(p=>p.x>-50);
-}
-
-// GROUND
-function drawGround(){
-  groundX-=3;
-  ctx.fillStyle="#8B4513";
-  ctx.fillRect(groundX,550,400,50);
-  ctx.fillRect(groundX+400,550,400,50);
-  if(groundX<=-400) groundX=0;
-}
-
-// UPDATE
-function update(){
-  if(!running) return;
-
-  ctx.clearRect(0,0,400,600);
-
-  drawClouds();
-
-  bird.velocity+=bird.gravity;
-  bird.y+=bird.velocity;
-
-  if(bird.y>550 || bird.y<0) gameOver();
-
-  drawBird();
-  drawPipes();
-  drawGround();
-  drawParticles();
-
-  ctx.fillStyle="white";
-  ctx.fillText("Score: "+score,10,20);
-
-  frame++;
-  requestAnimationFrame(update);
-}
-
-// CONTROLS
-function flap(){
-  if(!gameStarted) return;
-  bird.velocity = bird.lift;
-  document.getElementById("jump").play();
-  createParticles(bird.x,bird.y);
-}
-
-document.addEventListener("keydown", flap);
-document.addEventListener("touchstart", flap);
-
-// GAME OVER
-function gameOver(){
-  running=false;
-  document.getElementById("hit").play();
-
-  let high = localStorage.getItem("high") || 0;
-  if(score>high){
-    localStorage.setItem("high",score);
-    high=score;
+  if(nearest){
+    inCar=!inCar; currentCar=nearest;
   }
-
-  document.getElementById("finalScore").innerText="Score: "+score;
-  document.getElementById("highScore").innerText="High Score: "+high;
-  document.getElementById("gameOver").style.display="block";
 }
 
-// RESTART
-function restart(){
-  document.getElementById("gameOver").style.display="none";
-  init();
-  update();
+function driveCar(){
+  if(!inCar || !currentCar) return;
+  let c = currentCar;
+  if(keys['w']) c.vel+=0.02;
+  if(keys['s']) c.vel-=0.02;
+  if(keys['a']) c.angle+=0.03;
+  if(keys['d']) c.angle-=0.03;
+
+  c.mesh.rotation.y = c.angle;
+  c.mesh.position.x += Math.sin(c.angle)*c.vel;
+  c.mesh.position.z += Math.cos(c.angle)*c.vel;
+  c.vel *= 0.95;
+  player.position.copy(c.mesh.position);
 }
 
-// SPAWN
-setInterval(createPipe,1800);
-setInterval(createCloud,2000);
+// ===== SHOOT =====
+let ammo=10,reloading=false;
+function shoot(){
+  if(reloading||ammo<=0) return;
+  ammo--;
+  const ray=new THREE.Raycaster();
+  ray.setFromCamera(new THREE.Vector2(0,0),camera);
+  const hit=ray.intersectObjects([...enemies,...police]);
+  if(hit.length>0){ scene.remove(hit[0].object); }
+  if(ammo===0) reload();
+}
+function reload(){ reloading=true; setTimeout(()=>{ammo=10; reloading=false;},2000); }
+
+// ===== AI =====
+function updateAI(){
+  enemies.forEach(e=>{
+    let dir=new THREE.Vector3().subVectors(player.position,e.position).normalize();
+    e.position.add(dir.multiplyScalar(0.03));
+    if(e.position.distanceTo(player.position)<1){ health-=0.3; healthFill.style.width=health+'%'; }
+  });
+}
+
+// ===== MINI-MAP =====
+const map = document.getElementById('minimap'); const ctx=map.getContext('2d');
+function drawMap(){
+  ctx.clearRect(0,0,150,150);
+  ctx.fillStyle='white'; ctx.fillRect(75,75,5,5);
+  enemies.forEach(p=>{ ctx.fillStyle='red'; ctx.fillRect(75+(p.position.x-player.position.x),75+(p.position.z-player.position.z),3,3); });
+}
+
+// ===== CAMERA =====
+function updateCamera(){ camera.position.set(player.position.x,player.position.y+2,player.position.z+5); camera.lookAt(player.position); }
+
+// ===== ANIMATE =====
+function animate(){
+  requestAnimationFrame(animate);
+  move(); driveCar(); updateAI(); drawMap(); updateCamera();
+  renderer.render(scene,camera);
+}
+animate();
+
+// ===== RESIZE =====
+window.addEventListener("resize",()=>{
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
 </script>
 
 </body>
