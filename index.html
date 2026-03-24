@@ -2,214 +2,149 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>GTA LEVEL 3 ONLINE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instagram-Style Camera</title>
 <style>
-body { margin:0; overflow:hidden; font-family:sans-serif; }
-#crosshair { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); color:white; font-size:20px; }
-#ui { position:fixed; top:10px; left:10px; color:white; }
-#healthBar { position:fixed; bottom:20px; left:20px; width:200px; height:20px; border:2px solid white; }
-#healthFill { height:100%; width:100%; background:red; }
-#controls { position:fixed; bottom:10px; right:10px; display:flex; flex-direction:column; gap:5px; }
-.btn { padding:10px; background:#333; color:white; border-radius:5px; opacity:0.7; }
-#minimap { position:fixed; top:10px; right:10px; background:black; width:150px; height:150px; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: #121212;
+    color: #fff;
+  }
+
+  h1 {
+    margin-bottom: 10px;
+  }
+
+  .camera-container {
+    position: relative;
+    width: 90%;
+    max-width: 400px;
+    border-radius: 20px;
+    overflow: hidden;
+    background: #000;
+  }
+
+  video, canvas {
+    width: 100%;
+    border-radius: 20px;
+    display: block;
+  }
+
+  .controls {
+    margin-top: 15px;
+    display: flex;
+    gap: 15px;
+  }
+
+  .button {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    background: #1e90ff;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+  }
+
+  .button:hover {
+    background: #0c6ed0;
+  }
+
+  .filters {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .filter-btn {
+    padding: 5px 10px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+  }
 </style>
 </head>
 <body>
 
-<div id="crosshair">+</div>
-<div id="ui">💰 $<span id="money">0</span> | Mission: <span id="mission">Eliminate enemies</span></div>
-<div id="healthBar"><div id="healthFill"></div></div>
-<canvas id="minimap"></canvas>
-<div id="controls">
-<button class="btn" onclick="press('w')">▲</button>
-<div style="display:flex; gap:5px;">
-  <button class="btn" onclick="press('a')">◀</button>
-  <button class="btn" onclick="press('s')">▼</button>
-  <button class="btn" onclick="press('d')">▶</button>
-</div>
-<button class="btn" onclick="press(' ')">Jump</button>
-<button class="btn" onclick="shoot()">Shoot</button>
-<button class="btn" onclick="enterCar()">Car</button>
+<h1>Instagram Camera</h1>
+<div class="camera-container">
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas" style="display:none;"></canvas>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/loaders/GLTFLoader.js"></script>
+<div class="controls">
+  <button class="button" id="capture">📸</button>
+  <button class="button" id="switch">🔄</button>
+</div>
+
+<div class="filters">
+  <button class="filter-btn" data-filter="none">Normal</button>
+  <button class="filter-btn" data-filter="grayscale(100%)">Grayscale</button>
+  <button class="filter-btn" data-filter="sepia(100%)">Sepia</button>
+  <button class="filter-btn" data-filter="invert(100%)">Invert</button>
+  <button class="filter-btn" data-filter="contrast(200%)">Contrast</button>
+</div>
 
 <script>
-// ===== SCENE & CAMERA =====
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled=true;
-document.body.appendChild(renderer.domElement);
+let video = document.getElementById('video');
+let canvas = document.getElementById('canvas');
+let captureBtn = document.getElementById('capture');
+let switchBtn = document.getElementById('switch');
+let filters = document.querySelectorAll('.filter-btn');
 
-// ===== LIGHTS =====
-const hemi = new THREE.HemisphereLight(0xffffff,0x444444,1);
-scene.add(hemi);
-const dir = new THREE.DirectionalLight(0xffffff,1);
-dir.position.set(50,100,50);
-dir.castShadow = true;
-scene.add(dir);
+let currentStream;
+let usingFront = true;
 
-// ===== SKYBOX =====
-const loader = new THREE.CubeTextureLoader();
-scene.background = loader.load([
-'https://threejs.org/examples/textures/cube/skybox/px.jpg',
-'https://threejs.org/examples/textures/cube/skybox/nx.jpg',
-'https://threejs.org/examples/textures/cube/skybox/py.jpg',
-'https://threejs.org/examples/textures/cube/skybox/ny.jpg',
-'https://threejs.org/examples/textures/cube/skybox/pz.jpg',
-'https://threejs.org/examples/textures/cube/skybox/nz.jpg'
-]);
+// Start camera
+async function startCamera() {
+  if (currentStream) {
+    currentStream.getTracks().forEach(track => track.stop());
+  }
+  const constraints = {
+    video: { facingMode: usingFront ? "user" : "environment" },
+    audio: false
+  };
+  currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+  video.srcObject = currentStream;
+}
 
-// ===== GROUND =====
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(500,500),
-  new THREE.MeshStandardMaterial({color:0x444444})
-);
-ground.rotation.x = -Math.PI/2; ground.receiveShadow=true;
-scene.add(ground);
+startCamera();
 
-// ===== PLAYER =====
-const player = new THREE.Mesh(
-  new THREE.CapsuleGeometry(0.5,1),
-  new THREE.MeshStandardMaterial({color:0x00ffcc})
-);
-player.position.y=2; scene.add(player);
-
-// ===== CAR =====
-const carLoader = new THREE.GLTFLoader();
-let carModel = null;
-carLoader.load('https://threejs.org/examples/models/gltf/Fox.glb', gltf=>{
-  carModel = gltf.scene;
-  carModel.scale.set(0.01,0.01,0.01);
+// Switch camera
+switchBtn.addEventListener('click', () => {
+  usingFront = !usingFront;
+  startCamera();
 });
 
-// ===== CARS ARRAY =====
-let cars=[], inCar=false, currentCar=null;
-for(let i=0;i<5;i++){
-  const box = new THREE.Mesh(new THREE.BoxGeometry(2,1,4),
-  new THREE.MeshStandardMaterial({color:0xff0000}));
-  box.position.set(Math.random()*50-25,1,Math.random()*50-25);
-  scene.add(box);
-  cars.push({mesh:box,vel:0,angle:0});
-}
+// Capture photo
+captureBtn.addEventListener('click', () => {
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  let ctx = canvas.getContext('2d');
+  ctx.filter = video.style.filter || 'none';
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  canvas.style.display = 'block';
+});
 
-// ===== ENEMIES / POLICE =====
-let enemies=[], police=[];
-for(let i=0;i<8;i++){
-  const e = new THREE.Mesh(new THREE.BoxGeometry(1,2,1),
-  new THREE.MeshStandardMaterial({color:0xff0000}));
-  e.position.set(Math.random()*50-25,1,Math.random()*50-25);
-  scene.add(e); enemies.push(e);
-}
-
-// ===== CIVILIANS =====
-let civilians=[];
-for(let i=0;i<10;i++){
-  const c = new THREE.Mesh(new THREE.BoxGeometry(1,2,1),
-  new THREE.MeshStandardMaterial({color:0x00ff00}));
-  c.position.set(Math.random()*50-25,1,Math.random()*50-25);
-  scene.add(c); civilians.push(c);
-}
-
-// ===== CONTROLS =====
-let keys={};
-function press(k){ keys[k]=true; setTimeout(()=>keys[k]=false,100); }
-document.addEventListener("keydown", e=>keys[e.key]=true);
-document.addEventListener("keyup", e=>keys[e.key]=false);
-
-// ===== HEALTH + MONEY =====
-let health=100, money=0;
-const healthFill=document.getElementById('healthFill');
-const moneyUI=document.getElementById('money');
-
-// ===== WANTED LEVEL =====
-let wanted=0;
-
-// ===== GAME FUNCTIONS =====
-function move(){
-  if(!inCar){
-    if(keys['w']) player.position.z-=0.2;
-    if(keys['s']) player.position.z+=0.2;
-    if(keys['a']) player.position.x-=0.2;
-    if(keys['d']) player.position.x+=0.2;
-  }
-}
-
-function enterCar(){
-  let nearest=null, dist=3;
-  cars.forEach(c=>{
-    if(player.position.distanceTo(c.mesh.position)<dist){
-      nearest=c; dist=player.position.distanceTo(c.mesh.position);
-    }
+// Apply filters
+filters.forEach(btn => {
+  btn.addEventListener('click', () => {
+    video.style.filter = btn.dataset.filter;
   });
-  if(nearest){
-    inCar=!inCar; currentCar=nearest;
-  }
-}
-
-function driveCar(){
-  if(!inCar || !currentCar) return;
-  let c = currentCar;
-  if(keys['w']) c.vel+=0.02;
-  if(keys['s']) c.vel-=0.02;
-  if(keys['a']) c.angle+=0.03;
-  if(keys['d']) c.angle-=0.03;
-
-  c.mesh.rotation.y = c.angle;
-  c.mesh.position.x += Math.sin(c.angle)*c.vel;
-  c.mesh.position.z += Math.cos(c.angle)*c.vel;
-  c.vel *= 0.95;
-  player.position.copy(c.mesh.position);
-}
-
-// ===== SHOOT =====
-let ammo=10,reloading=false;
-function shoot(){
-  if(reloading||ammo<=0) return;
-  ammo--;
-  const ray=new THREE.Raycaster();
-  ray.setFromCamera(new THREE.Vector2(0,0),camera);
-  const hit=ray.intersectObjects([...enemies,...police]);
-  if(hit.length>0){ scene.remove(hit[0].object); }
-  if(ammo===0) reload();
-}
-function reload(){ reloading=true; setTimeout(()=>{ammo=10; reloading=false;},2000); }
-
-// ===== AI =====
-function updateAI(){
-  enemies.forEach(e=>{
-    let dir=new THREE.Vector3().subVectors(player.position,e.position).normalize();
-    e.position.add(dir.multiplyScalar(0.03));
-    if(e.position.distanceTo(player.position)<1){ health-=0.3; healthFill.style.width=health+'%'; }
-  });
-}
-
-// ===== MINI-MAP =====
-const map = document.getElementById('minimap'); const ctx=map.getContext('2d');
-function drawMap(){
-  ctx.clearRect(0,0,150,150);
-  ctx.fillStyle='white'; ctx.fillRect(75,75,5,5);
-  enemies.forEach(p=>{ ctx.fillStyle='red'; ctx.fillRect(75+(p.position.x-player.position.x),75+(p.position.z-player.position.z),3,3); });
-}
-
-// ===== CAMERA =====
-function updateCamera(){ camera.position.set(player.position.x,player.position.y+2,player.position.z+5); camera.lookAt(player.position); }
-
-// ===== ANIMATE =====
-function animate(){
-  requestAnimationFrame(animate);
-  move(); driveCar(); updateAI(); drawMap(); updateCamera();
-  renderer.render(scene,camera);
-}
-animate();
-
-// ===== RESIZE =====
-window.addEventListener("resize",()=>{
-  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight);
 });
 </script>
 
