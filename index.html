@@ -2,12 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Flappy Pro</title>
+<title>Flappy Bird Pro+</title>
 <style>
   body {
     margin: 0;
     overflow: hidden;
-    font-family: Arial;
     background: linear-gradient(#70c5ce, #ffffff);
   }
 
@@ -23,14 +22,13 @@
     transform: translate(-50%, -50%);
     display: none;
     text-align: center;
-    color: black;
   }
 
   button {
     padding: 10px 20px;
     font-size: 18px;
     border: none;
-    background: #ffcc00;
+    background: orange;
     cursor: pointer;
   }
 </style>
@@ -45,14 +43,19 @@
   <button onclick="restart()">Play Again</button>
 </div>
 
-<audio id="jumpSound" src="https://assets.mixkit.co/sfx/preview/mixkit-quick-jump-arcade-game-239.mp3"></audio>
-<audio id="hitSound" src="https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3"></audio>
-
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let bird, pipes, score, running;
+// 🐦 Load bird image
+const birdImg = new Image();
+birdImg.src = "https://i.imgur.com/QZ6N9sL.png";
+
+// ☁️ cloud image
+const cloudImg = new Image();
+cloudImg.src = "https://i.imgur.com/3Wb7G6X.png";
+
+let bird, pipes, score, running, clouds, groundX;
 
 function init() {
   bird = {
@@ -64,17 +67,36 @@ function init() {
   };
 
   pipes = [];
+  clouds = [];
   score = 0;
   running = true;
+  groundX = 0;
 }
 
+// ☁️ create clouds
+function createCloud() {
+  clouds.push({
+    x: canvas.width,
+    y: Math.random() * 200,
+    speed: 1
+  });
+}
+
+function drawClouds() {
+  clouds.forEach(c => {
+    ctx.drawImage(cloudImg, c.x, c.y, 80, 50);
+    c.x -= c.speed;
+  });
+
+  clouds = clouds.filter(c => c.x > -100);
+}
+
+// 🐦 draw bird
 function drawBird() {
-  ctx.fillStyle = "yellow";
-  ctx.beginPath();
-  ctx.arc(bird.x, bird.y, 15, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.drawImage(birdImg, bird.x - 20, bird.y - 20, 40, 40);
 }
 
+// 🧱 pipes
 function createPipe() {
   let gap = 130;
   let top = Math.random() * 250;
@@ -89,15 +111,13 @@ function createPipe() {
 
 function drawPipes() {
   pipes.forEach(p => {
-    // pipe
-    ctx.fillStyle = "green";
-    ctx.fillRect(p.x, 0, 50, p.top);
-    ctx.fillRect(p.x, canvas.height - p.bottom, 50, p.bottom);
+    ctx.fillStyle = "#2ecc71";
 
-    // shadow
-    ctx.fillStyle = "darkgreen";
-    ctx.fillRect(p.x + 40, 0, 10, p.top);
-    ctx.fillRect(p.x + 40, canvas.height - p.bottom, 10, p.bottom);
+    // top pipe
+    ctx.fillRect(p.x, 0, 50, p.top);
+
+    // bottom pipe
+    ctx.fillRect(p.x, canvas.height - p.bottom, 50, p.bottom);
 
     p.x -= 3;
 
@@ -120,25 +140,36 @@ function drawPipes() {
   pipes = pipes.filter(p => p.x > -50);
 }
 
-function drawBackground() {
-  ctx.fillStyle = "#70c5ce";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+// 🌍 ground
+function drawGround() {
+  groundX -= 3;
+  ctx.fillStyle = "#8B4513";
+  ctx.fillRect(groundX, canvas.height - 50, canvas.width, 50);
+  ctx.fillRect(groundX + canvas.width, canvas.height - 50, canvas.width, 50);
+
+  if (groundX <= -canvas.width) {
+    groundX = 0;
+  }
 }
 
+// 🎮 update loop
 function update() {
   if (!running) return;
 
-  drawBackground();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawClouds();
 
   bird.velocity += bird.gravity;
   bird.y += bird.velocity;
 
-  if (bird.y > canvas.height || bird.y < 0) {
+  if (bird.y > canvas.height - 50 || bird.y < 0) {
     gameOver();
   }
 
   drawBird();
   drawPipes();
+  drawGround();
 
   ctx.fillStyle = "white";
   ctx.font = "20px Arial";
@@ -147,19 +178,20 @@ function update() {
   requestAnimationFrame(update);
 }
 
+// 🕹 controls
 function flap() {
   if (!running) return;
   bird.velocity = bird.lift;
-  document.getElementById("jumpSound").play();
 }
 
+// 💀 game over
 function gameOver() {
   running = false;
-  document.getElementById("hitSound").play();
   document.getElementById("finalScore").innerText = "Score: " + score;
   document.getElementById("gameOver").style.display = "block";
 }
 
+// 🔄 restart
 function restart() {
   document.getElementById("gameOver").style.display = "none";
   init();
@@ -174,6 +206,7 @@ document.addEventListener("touchstart", flap);
 init();
 update();
 setInterval(createPipe, 1800);
+setInterval(createCloud, 2000);
 </script>
 
 </body>
