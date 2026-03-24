@@ -3,92 +3,116 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Instagram-Style Camera</title>
+<title>Instagram-Style Camera + Gallery + Flashlight</title>
 <style>
-  body {
-    margin: 0;
-    font-family: 'Segoe UI', sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    background: #121212;
-    color: #fff;
-  }
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #121212;
+  color: #fff;
+}
 
-  h1 {
-    margin-bottom: 10px;
-  }
+h1 {
+  margin: 15px 0;
+}
 
-  .camera-container {
-    position: relative;
-    width: 90%;
-    max-width: 400px;
-    border-radius: 20px;
-    overflow: hidden;
-    background: #000;
-  }
+.camera-container {
+  position: relative;
+  width: 90%;
+  max-width: 400px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #000;
+}
 
-  video, canvas {
-    width: 100%;
-    border-radius: 20px;
-    display: block;
-  }
+video, canvas {
+  width: 100%;
+  border-radius: 20px;
+  display: block;
+}
 
-  .controls {
-    margin-top: 15px;
-    display: flex;
-    gap: 15px;
-  }
+.controls {
+  margin-top: 15px;
+  display: flex;
+  gap: 15px;
+}
 
-  .button {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    border: none;
-    background: #1e90ff;
-    color: #fff;
-    font-size: 14px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: 0.2s;
-  }
+.button {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  background: #1e90ff;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s;
+  position: relative;
+}
 
-  .button:hover {
-    background: #0c6ed0;
-  }
+.button:active {
+  transform: scale(0.85);
+}
 
-  .filters {
-    margin-top: 15px;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
+#capture {
+  background: #fff;
+  border: 4px solid #ff4757;
+  width: 70px;
+  height: 70px;
+}
 
-  .filter-btn {
-    padding: 5px 10px;
-    border-radius: 10px;
-    border: none;
-    cursor: pointer;
-    font-size: 12px;
-  }
+.filters {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.filter-btn {
+  padding: 5px 10px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.gallery {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.gallery img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 2px solid #1e90ff;
+}
 </style>
 </head>
 <body>
 
 <h1>Instagram Camera</h1>
+
 <div class="camera-container">
   <video id="video" autoplay playsinline></video>
   <canvas id="canvas" style="display:none;"></canvas>
 </div>
 
 <div class="controls">
-  <button class="button" id="capture">📸</button>
   <button class="button" id="switch">🔄</button>
+  <button class="button" id="capture"></button>
+  <button class="button" id="flash">⚡</button>
 </div>
 
 <div class="filters">
@@ -99,20 +123,26 @@
   <button class="filter-btn" data-filter="contrast(200%)">Contrast</button>
 </div>
 
+<h2>Gallery</h2>
+<div class="gallery" id="gallery"></div>
+
 <script>
 let video = document.getElementById('video');
 let canvas = document.getElementById('canvas');
 let captureBtn = document.getElementById('capture');
 let switchBtn = document.getElementById('switch');
+let flashBtn = document.getElementById('flash');
 let filters = document.querySelectorAll('.filter-btn');
+let gallery = document.getElementById('gallery');
 
 let currentStream;
 let usingFront = true;
+let track; // for flashlight
 
 // Start camera
 async function startCamera() {
   if (currentStream) {
-    currentStream.getTracks().forEach(track => track.stop());
+    currentStream.getTracks().forEach(t => t.stop());
   }
   const constraints = {
     video: { facingMode: usingFront ? "user" : "environment" },
@@ -120,9 +150,8 @@ async function startCamera() {
   };
   currentStream = await navigator.mediaDevices.getUserMedia(constraints);
   video.srcObject = currentStream;
+  track = currentStream.getVideoTracks()[0];
 }
-
-startCamera();
 
 // Switch camera
 switchBtn.addEventListener('click', () => {
@@ -138,6 +167,15 @@ captureBtn.addEventListener('click', () => {
   ctx.filter = video.style.filter || 'none';
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   canvas.style.display = 'block';
+
+  // Save to gallery
+  let img = document.createElement('img');
+  img.src = canvas.toDataURL('image/png');
+  gallery.prepend(img);
+
+  // Flash animation
+  captureBtn.style.background = '#fffa';
+  setTimeout(() => captureBtn.style.background = '#fff', 100);
 });
 
 // Apply filters
@@ -146,6 +184,17 @@ filters.forEach(btn => {
     video.style.filter = btn.dataset.filter;
   });
 });
+
+// Flashlight toggle
+let flashlightOn = false;
+flashBtn.addEventListener('click', async () => {
+  if (!track) return alert('Flash not supported');
+  const capabilities = track.getCapabilities();
+  if (!capabilities.torch) return alert('Torch not supported on this device');
+  flashlightOn = !flashlightOn;
+  await track.applyConstraints({ advanced: [{ torch: flashlightOn }] });
+});
+startCamera();
 </script>
 
 </body>
