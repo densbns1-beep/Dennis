@@ -1,201 +1,421 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Instagram-Style Camera + Gallery + Flashlight</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CodeLearner</title>
 <style>
-body {
-  margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: #121212;
-  color: #fff;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #fff; color: #222; }
 
-h1 {
-  margin: 15px 0;
-}
+nav { background: #04AA6D; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+.nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+.nav-brand { color: #fff; font-weight: 700; font-size: 1.1rem; text-decoration: none; }
+.nav-links { display: flex; gap: 4px; flex-wrap: wrap; }
+.nav-links a { color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: .85rem; font-weight: 500; cursor: pointer; }
+.nav-links a:hover { background: #059862; }
+.nav-links a.active { background: #fff; color: #04AA6D; }
 
-.camera-container {
-  position: relative;
-  width: 90%;
-  max-width: 400px;
-  border-radius: 20px;
-  overflow: hidden;
-  background: #000;
-}
+.page-wrap { display: flex; min-height: calc(100vh - 56px - 48px); }
+.sidebar { width: 200px; flex-shrink: 0; border-right: 1px solid #e5e7eb; background: #f9fafb; padding: 16px; position: sticky; top: 56px; height: calc(100vh - 56px); overflow-y: auto; display: none; }
+.sidebar.visible { display: block; }
+.sidebar-title { font-size: .85rem; font-weight: 700; color: #04AA6D; margin-bottom: 12px; cursor: pointer; display: block; }
+.sidebar ul { list-style: none; }
+.sidebar ul li a { display: block; padding: 6px 12px; border-radius: 6px; font-size: .85rem; color: #374151; text-decoration: none; cursor: pointer; }
+.sidebar ul li a:hover { background: #e5e7eb; }
+.sidebar ul li a.active { background: #04AA6D; color: #fff; font-weight: 600; }
+main { flex: 1; min-width: 0; }
+footer { background: #f3f4f6; border-top: 1px solid #e5e7eb; text-align: center; font-size: .75rem; color: #6b7280; padding: 14px; }
 
-video, canvas {
-  width: 100%;
-  border-radius: 20px;
-  display: block;
-}
+.hero { background: linear-gradient(135deg, #04AA6D, #048a58); color: #fff; padding: 64px 16px; text-align: center; }
+.hero h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 12px; }
+.hero p { font-size: 1.05rem; color: #d1fae5; margin-bottom: 28px; }
+.search-wrap { position: relative; max-width: 400px; margin: 0 auto; }
+.search-wrap input { width: 100%; padding: 12px 16px 12px 38px; border-radius: 8px; border: none; font-size: .9rem; outline: none; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
 
-.controls {
-  margin-top: 15px;
-  display: flex;
-  gap: 15px;
-}
+.courses-grid { max-width: 1000px; margin: 0 auto; padding: 48px 16px; display: grid; grid-template-columns: repeat(auto-fill,minmax(280px,1fr)); gap: 20px; }
+.course-card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; background: #fff; cursor: pointer; transition: box-shadow .2s, border-color .2s; display: flex; flex-direction: column; }
+.course-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.1); border-color: #04AA6D; }
+.course-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 14px; }
+.course-card h2 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+.course-card:hover h2 { color: #04AA6D; }
+.course-card p { font-size: .85rem; color: #6b7280; flex: 1; margin-bottom: 14px; }
+.start-link { font-size: .85rem; font-weight: 600; color: #04AA6D; }
+.no-results { text-align: center; padding: 64px 16px; color: #6b7280; }
+.no-results button { margin-top: 10px; background: none; border: none; color: #04AA6D; cursor: pointer; font-size: .9rem; text-decoration: underline; }
 
-.button {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  border: none;
-  background: #1e90ff;
-  color: #fff;
-  font-size: 18px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: 0.2s;
-  position: relative;
-}
+.content-page { max-width: 760px; margin: 0 auto; padding: 40px 24px; }
+.breadcrumb { font-size: .8rem; color: #9ca3af; margin-bottom: 20px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.breadcrumb span { cursor: pointer; }
+.breadcrumb span:hover { color: #04AA6D; }
+.breadcrumb .sep { color: #d1d5db; }
+.breadcrumb .current { color: #374151; font-weight: 500; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.page-title { font-size: 2rem; font-weight: 800; }
+.next-link { font-size: .85rem; font-weight: 600; color: #04AA6D; cursor: pointer; white-space: nowrap; }
+.next-link:hover { text-decoration: underline; }
+.lesson-body { font-size: .97rem; line-height: 1.7; color: #374151; margin-bottom: 32px; }
+.start-btn { display: inline-flex; align-items: center; gap: 8px; background: #04AA6D; color: #fff; border: none; font-weight: 700; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: .9rem; margin-bottom: 36px; }
+.start-btn:hover { background: #059862; }
+.topics-list { display: flex; flex-direction: column; gap: 8px; }
+.topic-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border: 1px solid #e5e7eb; border-radius: 10px; cursor: pointer; transition: background .15s, border-color .15s; }
+.topic-item:hover { background: #f9fafb; border-color: #04AA6D; }
+.topic-item:hover span { color: #04AA6D; }
+.topic-item span { font-weight: 500; font-size: .95rem; }
+.topic-arrow { color: #9ca3af; }
 
-.button:active {
-  transform: scale(0.85);
-}
+.example-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; margin-bottom: 32px; }
+.example-box h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 4px; }
+.example-box .ex-desc { font-size: .85rem; color: #6b7280; margin-bottom: 16px; }
+.label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #9ca3af; margin-bottom: 8px; }
+.code-block { background: #111827; color: #6ee7b7; border-radius: 8px; padding: 16px; font-family: 'Courier New', monospace; font-size: .85rem; overflow-x: auto; white-space: pre; margin-bottom: 16px; }
 
-#capture {
-  background: #fff;
-  border: 4px solid #ff4757;
-  width: 70px;
-  height: 70px;
-}
+.editor-wrap { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+.editor-toolbar { background: #1f2937; padding: 8px 14px; display: flex; align-items: center; justify-content: space-between; }
+.editor-lang { font-size: .7rem; color: #9ca3af; font-family: monospace; text-transform: uppercase; }
+.editor-btns { display: flex; gap: 8px; }
+.btn-reset { background: none; border: none; color: #9ca3af; cursor: pointer; font-size: .78rem; padding: 4px 8px; border-radius: 4px; }
+.btn-reset:hover { background: #374151; color: #fff; }
+.btn-run { background: #04AA6D; color: #fff; border: none; cursor: pointer; font-size: .78rem; padding: 4px 12px; border-radius: 4px; font-weight: 600; }
+.btn-run:hover { background: #059862; }
+.editor-textarea { width: 100%; background: #111827; color: #6ee7b7; font-family: 'Courier New', monospace; font-size: .85rem; padding: 16px; border: none; outline: none; resize: none; min-height: 180px; display: block; }
+.result-label { background: #f3f4f6; padding: 6px 14px; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; border-top: 1px solid #e5e7eb; }
+.result-iframe { width: 100%; background: #fff; border: none; display: block; }
+.result-text { background: #fff; padding: 16px; font-family: 'Courier New', monospace; font-size: .85rem; white-space: pre-wrap; color: #111; min-height: 60px; }
+.result-placeholder { color: #9ca3af; font-style: italic; }
 
-.filters {
-  margin-top: 15px;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
+.nav-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 24px; border-top: 1px solid #e5e7eb; margin-top: 8px; }
+.nav-btn { display: inline-flex; align-items: center; gap: 6px; background: #04AA6D; color: #fff; border: none; font-weight: 600; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: .85rem; }
+.nav-btn:hover { background: #059862; }
+.nav-btn.ghost { background: none; color: #04AA6D; border: 1px solid #04AA6D; }
+.nav-btn.ghost:hover { background: #f0fdf4; }
 
-.filter-btn {
-  padding: 5px 10px;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.gallery {
-  margin-top: 20px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-}
-
-.gallery img {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 10px;
-  border: 2px solid #1e90ff;
-}
+.sections-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 14px; }
 </style>
 </head>
 <body>
 
-<h1>Instagram Camera</h1>
+<nav>
+  <div class="nav-inner">
+    <a class="nav-brand" onclick="showHome()">&#60;/&#62; CodeLearner</a>
+    <div class="nav-links" id="navLinks"></div>
+  </div>
+</nav>
 
-<div class="camera-container">
-  <video id="video" autoplay playsinline></video>
-  <canvas id="canvas" style="display:none;"></canvas>
+<div class="page-wrap">
+  <div class="sidebar" id="sidebar">
+    <a class="sidebar-title" id="sidebarTitle"></a>
+    <ul id="sidebarList"></ul>
+  </div>
+  <main id="main"></main>
 </div>
 
-<div class="controls">
-  <button class="button" id="switch">🔄</button>
-  <button class="button" id="capture"></button>
-  <button class="button" id="flash">⚡</button>
-</div>
-
-<div class="filters">
-  <button class="filter-btn" data-filter="none">Normal</button>
-  <button class="filter-btn" data-filter="grayscale(100%)">Grayscale</button>
-  <button class="filter-btn" data-filter="sepia(100%)">Sepia</button>
-  <button class="filter-btn" data-filter="invert(100%)">Invert</button>
-  <button class="filter-btn" data-filter="contrast(200%)">Contrast</button>
-</div>
-
-<h2>Gallery</h2>
-<div class="gallery" id="gallery"></div>
+<footer>Made with Replit</footer>
 
 <script>
-let video = document.getElementById('video');
-let canvas = document.getElementById('canvas');
-let captureBtn = document.getElementById('capture');
-let switchBtn = document.getElementById('switch');
-let flashBtn = document.getElementById('flash');
-let filters = document.querySelectorAll('.filter-btn');
-let gallery = document.getElementById('gallery');
-
-let currentStream;
-let usingFront = true;
-let track; // for flashlight
-
-// Start camera
-async function startCamera() {
-  if (currentStream) {
-    currentStream.getTracks().forEach(t => t.stop());
+const courses = [
+  {
+    slug: "html", title: "HTML Tutorial", description: "The language for building web pages.",
+    icon: "🟧", color: "#f97316",
+    lessons: [
+      {
+        slug: "introduction", title: "HTML Introduction",
+        content: "HTML stands for Hyper Text Markup Language. It is the standard markup language for creating Web pages. HTML describes the structure of a Web page and consists of a series of elements. HTML elements tell the browser how to display the content.",
+        example: { title: "Example: A Simple HTML Document", desc: "This is a basic boilerplate for an HTML5 document.", lang: "html",
+          code: `<!DOCTYPE html>\n<html>\n<head>\n<title>Page Title</title>\n</head>\n<body>\n\n<h1>My First Heading</h1>\n<p>My first paragraph.</p>\n\n</body>\n</html>` },
+        next: "elements"
+      },
+      {
+        slug: "elements", title: "HTML Elements",
+        content: "An HTML element is defined by a start tag, some content, and an end tag. The HTML element is everything from the start tag to the end tag. Nested elements are elements inside other elements.",
+        example: { title: "Example: Nested Elements", desc: "Elements can be nested inside each other.", lang: "html",
+          code: `<!DOCTYPE html>\n<html>\n<body>\n\n<div>\n  <h2>A nested heading</h2>\n  <p>A nested paragraph.</p>\n</div>\n\n</body>\n</html>` },
+        prev: "introduction"
+      }
+    ]
+  },
+  {
+    slug: "css", title: "CSS Tutorial", description: "The language for styling web pages.",
+    icon: "🎨", color: "#3b82f6",
+    lessons: [
+      {
+        slug: "introduction", title: "CSS Introduction",
+        content: "CSS stands for Cascading Style Sheets. CSS describes how HTML elements are to be displayed on screen, paper, or in other media. CSS saves a lot of work. It can control the layout of multiple web pages all at once.",
+        example: { title: "Example: CSS Syntax", desc: "A CSS rule consists of a selector and a declaration block.", lang: "html",
+          code: `<!DOCTYPE html>\n<html>\n<head>\n<style>\np {\n  color: red;\n  text-align: center;\n}\n</style>\n</head>\n<body>\n\n<p>Hello World!</p>\n<p>These paragraphs are styled with CSS.</p>\n\n</body>\n</html>` }
+      }
+    ]
+  },
+  {
+    slug: "js", title: "JavaScript Tutorial", description: "The programming language of the Web.",
+    icon: "⚡", color: "#eab308",
+    lessons: [
+      {
+        slug: "introduction", title: "JavaScript Introduction",
+        content: "JavaScript is the world's most popular programming language. It is the language of the web. JavaScript is easy to learn.",
+        example: { title: "Example: Change HTML Content", desc: "One of many JavaScript HTML methods is getElementById().", lang: "html",
+          code: `<!DOCTYPE html>\n<html>\n<body>\n\n<h2>What Can JavaScript Do?</h2>\n\n<p id="demo">JavaScript can change HTML content.</p>\n\n<button type="button" onclick='document.getElementById("demo").innerHTML = "Hello JavaScript!"'>Click Me!</button>\n\n</body>\n</html>` },
+        next: "variables"
+      },
+      {
+        slug: "variables", title: "JavaScript Variables",
+        content: "Variables are containers for storing data (storing data values). In this example, x, y, and z, are variables.",
+        example: { title: "Example: Using Let and Const", desc: "Modern JavaScript uses let and const for variable declaration.", lang: "html",
+          code: `<!DOCTYPE html>\n<html>\n<body>\n\n<p id="demo"></p>\n\n<script>\nlet x = 5;\nlet y = 6;\nlet z = x + y;\ndocument.getElementById("demo").innerHTML =\n"The value of z is: " + z;\n<\/script>\n\n</body>\n</html>` },
+        prev: "introduction"
+      }
+    ]
+  },
+  {
+    slug: "python", title: "Python Tutorial", description: "A popular programming language.",
+    icon: "🐍", color: "#2563eb",
+    lessons: [
+      {
+        slug: "introduction", title: "Python Introduction",
+        content: "Python is a popular programming language. It was created by Guido van Rossum, and released in 1991. It is used for web development, software development, mathematics, and system scripting.",
+        example: { title: "Example: Hello World", desc: "The simplest Python program.", lang: "python",
+          code: `print("Hello, World!")` }
+      }
+    ]
+  },
+  {
+    slug: "sql", title: "SQL Tutorial", description: "A language for accessing databases.",
+    icon: "🗄️", color: "#9333ea",
+    lessons: [
+      {
+        slug: "introduction", title: "SQL Introduction",
+        content: "SQL is a standard language for storing, manipulating and retrieving data in databases.",
+        example: { title: "Example: SELECT Statement", desc: "The SELECT statement is used to select data from a database.", lang: "sql",
+          code: `SELECT CustomerName, City\nFROM Customers;` }
+      }
+    ]
+  },
+  {
+    slug: "react", title: "React Tutorial", description: "A JavaScript library for building user interfaces.",
+    icon: "⚛️", color: "#06b6d4",
+    lessons: [
+      {
+        slug: "introduction", title: "React Introduction",
+        content: "React is a JavaScript library for building user interfaces. React is used to build single-page applications. React allows us to create reusable UI components.",
+        example: { title: "Example: A Basic Component", desc: "A simple functional component.", lang: "jsx",
+          code: `import React from 'react';\n\nfunction Hello() {\n  return <h1>Hello World!</h1>;\n}\n\nexport default Hello;` }
+      }
+    ]
   }
-  const constraints = {
-    video: { facingMode: usingFront ? "user" : "environment" },
-    audio: false
-  };
-  currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-  video.srcObject = currentStream;
-  track = currentStream.getVideoTracks()[0];
+];
+
+let currentCourse = null;
+let currentLesson = null;
+let searchQuery = '';
+
+function getCourse(slug) { return courses.find(c => c.slug === slug); }
+function getLesson(courseSlug, lessonSlug) {
+  const c = getCourse(courseSlug);
+  return c ? c.lessons.find(l => l.slug === lessonSlug) : null;
 }
 
-// Switch camera
-switchBtn.addEventListener('click', () => {
-  usingFront = !usingFront;
-  startCamera();
-});
+function updateNav() {
+  const navLinks = document.getElementById('navLinks');
+  navLinks.innerHTML = courses.map(c => `
+    <a onclick="showCourse('${c.slug}')" class="${currentCourse && currentCourse.slug === c.slug ? 'active' : ''}">
+      ${c.title.replace(' Tutorial', '')}
+    </a>
+  `).join('');
+}
 
-// Capture photo
-captureBtn.addEventListener('click', () => {
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  let ctx = canvas.getContext('2d');
-  ctx.filter = video.style.filter || 'none';
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  canvas.style.display = 'block';
+function updateSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const title = document.getElementById('sidebarTitle');
+  const list = document.getElementById('sidebarList');
+  if (!currentCourse) { sidebar.classList.remove('visible'); return; }
+  sidebar.classList.add('visible');
+  title.textContent = currentCourse.title;
+  title.onclick = () => showCourse(currentCourse.slug);
+  list.innerHTML = currentCourse.lessons.map(l => `
+    <li><a onclick="showLesson('${currentCourse.slug}','${l.slug}')"
+      class="${currentLesson && currentLesson.slug === l.slug ? 'active' : ''}">
+      ${l.title}
+    </a></li>
+  `).join('');
+}
 
-  // Save to gallery
-  let img = document.createElement('img');
-  img.src = canvas.toDataURL('image/png');
-  gallery.prepend(img);
+function showHome() {
+  currentCourse = null;
+  currentLesson = null;
+  updateNav();
+  updateSidebar();
+  renderHome();
+}
 
-  // Flash animation
-  captureBtn.style.background = '#fffa';
-  setTimeout(() => captureBtn.style.background = '#fff', 100);
-});
+function renderHome() {
+  const filtered = searchQuery
+    ? courses.filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase()) || c.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    : courses;
 
-// Apply filters
-filters.forEach(btn => {
-  btn.addEventListener('click', () => {
-    video.style.filter = btn.dataset.filter;
-  });
-});
+  document.getElementById('main').innerHTML = `
+    <div class="hero">
+      <h1>Learn to Code</h1>
+      <p>With the world's largest web developer site. Free tutorials, references, and exercises.</p>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="search" placeholder="Search tutorials..." value="${searchQuery}"
+          oninput="searchQuery=this.value;renderHome()" />
+      </div>
+    </div>
+    <div class="courses-grid">
+      ${filtered.length === 0 ? `
+        <div class="no-results" style="grid-column:1/-1">
+          <p>No tutorials found for "${searchQuery}"</p>
+          <button onclick="searchQuery='';renderHome()">Clear search</button>
+        </div>
+      ` : filtered.map(c => `
+        <div class="course-card" onclick="showCourse('${c.slug}')">
+          <div class="course-icon" style="background:${c.color}20">${c.icon}</div>
+          <h2>${c.title}</h2>
+          <p>${c.description}</p>
+          <span class="start-link">📖 Start Learning</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
 
-// Flashlight toggle
-let flashlightOn = false;
-flashBtn.addEventListener('click', async () => {
-  if (!track) return alert('Flash not supported');
-  const capabilities = track.getCapabilities();
-  if (!capabilities.torch) return alert('Torch not supported on this device');
-  flashlightOn = !flashlightOn;
-  await track.applyConstraints({ advanced: [{ torch: flashlightOn }] });
-});
-startCamera();
+function showCourse(slug) {
+  currentCourse = getCourse(slug);
+  currentLesson = null;
+  updateNav();
+  updateSidebar();
+  document.getElementById('main').innerHTML = `
+    <div class="content-page">
+      <div class="breadcrumb">
+        <span onclick="showHome()">Home</span>
+        <span class="sep">›</span>
+        <span class="current">${currentCourse.title}</span>
+      </div>
+      <h1 class="page-title">${currentCourse.title}</h1>
+      <p style="color:#6b7280;margin-bottom:28px">${currentCourse.description}</p>
+      ${currentCourse.lessons.length > 0 ? `
+        <button class="start-btn" onclick="showLesson('${currentCourse.slug}','${currentCourse.lessons[0].slug}')">
+          📖 Start Tutorial
+        </button>
+      ` : ''}
+      <div class="sections-title">Course Topics</div>
+      <div class="topics-list">
+        ${currentCourse.lessons.map(l => `
+          <div class="topic-item" onclick="showLesson('${currentCourse.slug}','${l.slug}')">
+            <span>${l.title}</span>
+            <span class="topic-arrow">›</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function showLesson(courseSlug, lessonSlug) {
+  currentCourse = getCourse(courseSlug);
+  currentLesson = getLesson(courseSlug, lessonSlug);
+  updateNav();
+  updateSidebar();
+
+  const lesson = currentLesson;
+  const ex = lesson.example;
+  const prevLesson = lesson.prev ? getLesson(courseSlug, lesson.prev) : null;
+  const nextLesson = lesson.next ? getLesson(courseSlug, lesson.next) : null;
+  const editorId = 'editor_' + Date.now();
+  const iframeId = 'iframe_' + Date.now();
+  const outputId = 'output_' + Date.now();
+  const isHtml = ['html','jsx'].includes(ex.lang);
+
+  document.getElementById('main').innerHTML = `
+    <div class="content-page">
+      <div class="breadcrumb">
+        <span onclick="showHome()">Home</span>
+        <span class="sep">›</span>
+        <span onclick="showCourse('${currentCourse.slug}')">${currentCourse.title}</span>
+        <span class="sep">›</span>
+        <span class="current">${lesson.title}</span>
+      </div>
+
+      <div class="page-header">
+        <h1 class="page-title">${lesson.title}</h1>
+        ${nextLesson ? `<span class="next-link" onclick="showLesson('${courseSlug}','${lesson.next}')">Next ›</span>` : ''}
+      </div>
+
+      <p class="lesson-body">${lesson.content}</p>
+
+      <div class="example-box">
+        <h2>${ex.title}</h2>
+        <p class="ex-desc">${ex.desc}</p>
+
+        <div class="label">Read</div>
+        <div class="code-block">${escapeHtml(ex.code)}</div>
+
+        <div class="label">Try it Yourself</div>
+        <div class="editor-wrap">
+          <div class="editor-toolbar">
+            <span class="editor-lang">${ex.lang}</span>
+            <div class="editor-btns">
+              <button class="btn-reset" onclick="resetEditor('${editorId}')">↺ Reset</button>
+              <button class="btn-run" onclick="runCode('${editorId}','${iframeId}','${outputId}','${ex.lang}')">▶ Run Code</button>
+            </div>
+          </div>
+          <textarea class="editor-textarea" id="${editorId}">${escapeHtml(ex.code)}</textarea>
+          <div class="result-label">Result</div>
+          ${isHtml
+            ? `<iframe class="result-iframe" id="${iframeId}" style="height:60px" sandbox="allow-scripts"></iframe>`
+            : `<div class="result-text" id="${outputId}"><span class="result-placeholder">Click "Run Code" to view result</span></div>`
+          }
+        </div>
+      </div>
+
+      <div class="nav-bottom">
+        ${prevLesson
+          ? `<button class="nav-btn" onclick="showLesson('${courseSlug}','${lesson.prev}')">‹ ${prevLesson.title}</button>`
+          : `<span></span>`}
+        ${nextLesson
+          ? `<button class="nav-btn" onclick="showLesson('${courseSlug}','${lesson.next}')">${nextLesson.title} ›</button>`
+          : `<span></span>`}
+      </div>
+    </div>
+  `;
+
+  window['_origCode_' + editorId] = ex.code;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function resetEditor(editorId) {
+  const ta = document.getElementById(editorId);
+  if (ta) ta.value = window['_origCode_' + editorId] || '';
+}
+
+function runCode(editorId, iframeId, outputId, lang) {
+  const code = document.getElementById(editorId).value;
+  const isHtml = ['html','jsx'].includes(lang);
+  if (isHtml) {
+    const iframe = document.getElementById(iframeId);
+    iframe.style.height = '200px';
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open(); doc.write(code); doc.close();
+  } else if (lang === 'python') {
+    const matches = [...code.matchAll(/print\(["'](.+?)["']\)/g)];
+    const out = document.getElementById(outputId);
+    out.innerHTML = matches.length
+      ? matches.map(m => m[1]).join('\n')
+      : '<span class="result-placeholder">No output detected.</span>';
+  } else if (lang === 'sql') {
+    document.getElementById(outputId).innerText =
+      'CustomerName          City\n--------------------  ---------------\nAlfreds Futterkiste   Berlin\nAna Trujillo          México D.F.\nAntonio Moreno        México D.F.';
+  } else {
+    document.getElementById(outputId).innerText = '(Output not supported for this language in the browser)';
+  }
+}
+
+showHome();
 </script>
-
 </body>
 </html>
