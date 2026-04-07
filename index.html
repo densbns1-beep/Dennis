@@ -9,7 +9,7 @@
 body {
     margin: 0;
     font-family: Arial, sans-serif;
-    background: black;
+    background: #000;
     color: white;
     display: flex;
     justify-content: center;
@@ -17,7 +17,7 @@ body {
     height: 100vh;
 }
 
-/* Main box */
+/* Main */
 .container {
     text-align: center;
 }
@@ -48,7 +48,19 @@ button {
     position: absolute;
 }
 
-/* Fake popup */
+/* Loading */
+.loading {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: black;
+    color: white;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+}
+
+/* Fake phone popup */
 .popup {
     display: none;
     position: fixed;
@@ -73,18 +85,6 @@ button {
     from { transform: translateY(100%); }
     to { transform: translateY(0); }
 }
-
-/* Loading screen */
-.loading {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: black;
-    color: white;
-    justify-content: center;
-    align-items: center;
-    font-size: 20px;
-}
 </style>
 </head>
 
@@ -96,7 +96,9 @@ button {
     <button id="noBtn">No 😤</button>
 </div>
 
-<div class="loading" id="loading">Scanning your height... 📏👀</div>
+<div class="loading" id="loading">
+    Scanning your height... 📏👀
+</div>
 
 <div class="popup" id="popup">
     <h2>I knew it 😎</h2>
@@ -104,16 +106,13 @@ button {
     <button onclick="closePopup()">OK</button>
 </div>
 
-<audio id="sound" src="https://www.myinstants.com/media/sounds/troll-lololol.mp3"></audio>
-
 <script>
 const noBtn = document.getElementById("noBtn");
 const yesBtn = document.getElementById("yesBtn");
 const popup = document.getElementById("popup");
 const loading = document.getElementById("loading");
-const sound = document.getElementById("sound");
 
-// Move NO button (mobile + desktop)
+// Move NO button (works on mobile + PC)
 function moveButton() {
     let x = Math.random() * (window.innerWidth - 100);
     let y = Math.random() * (window.innerHeight - 60);
@@ -125,10 +124,12 @@ function moveButton() {
 noBtn.addEventListener("touchstart", moveButton);
 noBtn.addEventListener("mouseover", moveButton);
 
-// YES button prank
+// YES button action (NO alert)
 yesBtn.onclick = () => {
     loading.style.display = "flex";
-    sound.play();
+
+    // vibration (if supported)
+    if (navigator.vibrate) navigator.vibrate(200);
 
     setTimeout(() => {
         loading.style.display = "none";
